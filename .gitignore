@@ -1,0 +1,23 @@
+# Node
+node_modules/
+dist/
+.env
+npm-debug.log
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# VSCode
+.vscode/
+
+# Mac
+.DS_Store
+
+# logs
+logs/
+*.log
+
+# builds
+/build
