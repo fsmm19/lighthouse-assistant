@@ -12,28 +12,35 @@ class LighthouseParser:
             json_string (str): Un string con formato JSON que contiene los datos del reporte Lighthouse
         
         Raises:
-            TypeError: Si la entrada no es un string
-            ValueError: Si el string de entrada está vacío o no es JSON válido, o si el informe no es un informe Lighthouse válido.
+            ValueError: Si el string de entrada no es JSON válido
         """
-        # Validar que el input sea un string
+
+        self._validate_input(json_string)
+        
+        try:
+            self.report_data = json.loads(json_string)
+        except json.JSONDecodeError as error:
+            raise ValueError(f"Invalid JSON: {str(error)}")
+        
+        self._validate_lighthouse_report()
+    
+    def _validate_input(self, json_string):
+        """
+        Valida la cadena JSON de entrada
+        
+        Args:
+            json_string (str): La cadena JSON a validar
+        Raises:
+            TypeError: Si la entrada no es una cadena
+            ValueError: Si la cadena de entrada está vacía o sólo contiene espacios en blanco
+        """
         if not isinstance(json_string, str):
             raise TypeError("The parameter must be a JSON string")
         
-        # Validar que el string no este vacío
         if not json_string.strip():
             raise ValueError("JSON string cannot be empty")
-        
-        try:
-            # Convertir el string a un diccionario Python
-            self.report_data = json.loads(json_string)
-        
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON: {str(e)}")
-        
-        # Validar que es un reporte de Lighthouse
-        self.validate_lighthouse_report()
     
-    def validate_lighthouse_report(self):
+    def _validate_lighthouse_report(self):
         """
         Valida que el informe Lighthouse cargado tenga la estructura y las categorías requeridas
 
@@ -44,14 +51,39 @@ class LighthouseParser:
         Raises:
             ValueError: Si al informe le faltan claves requeridas o no contiene ninguna de las categorías objetivo
         """
-        # Verificar estructura básica de Lighthouse
+        self._check_required_keys()
+        available_categories, missing_categories = self._check_categories()
+
+        # Si se llega aquí, el reporte es válido
+        print(f"✓ Lighthouse v{self.report_data['lighthouseVersion']} report successfully uploaded")
+        print(f"✓ Categories available: {', '.join(available_categories)}")
+
+        if missing_categories:
+            print(f"⚠ Categories not available: {', '.join(missing_categories)}")
+
+    def _check_required_keys(self):
+        """
+        Verifica que el informe contenga las claves estructurales necesarias.
+        
+        Raises:
+            ValueError: Si falta alguna clave requerida en el informe
+        """
         required_keys = ['lighthouseVersion', 'categories']
 
         for key in required_keys:
             if key not in self.report_data:
                 raise ValueError(f"Not a valid Lighthouse report: missing '{key}'")
+
+    def _check_categories(self):
+        """
+        Verifica la presencia de categorías de interés en el informe.
         
-        # Verificar que existe al menos una de las categorías de interes
+        Returns:
+            tuple: (available_categories, missing_categories)
+            
+        Raises:
+            ValueError: Si no se encuentra ninguna categoría de interés
+        """
         categories = self.report_data.get('categories', {})
         target_categories = ['performance', 'accessibility', 'seo']
         available_categories = []
@@ -63,12 +95,6 @@ class LighthouseParser:
         if not available_categories:
             raise ValueError(f"The report does not contain any of the required categories: {', '.join(target_categories)}")
         
-        # Informar que categorías están disponibles
         missing_categories = [category for category in target_categories if category not in available_categories]
 
-        # Si se llega aquí, el reporte es válido
-        print(f"✓ Lighthouse v{self.report_data['lighthouseVersion']} report successfully uploaded")
-        print(f"✓ Categories available: {', '.join(available_categories)}")
-
-        if missing_categories:
-            print(f"⚠ Categories not available: {', '.join(missing_categories)}")
+        return available_categories, missing_categories
